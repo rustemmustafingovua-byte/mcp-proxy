@@ -42,6 +42,29 @@ npm i -g mcp-proxy
 mcp-proxy --servers servers.json --key $MCP_PROXY_KEY --port 8790
 ```
 
+## CLI
+
+```
+mcp-proxy — One endpoint, many MCP servers, with keys, limits and logs.
+
+USAGE
+  mcp-proxy --servers servers.json --key $MCP_PROXY_KEY --port 8790
+
+COMMANDS / OPTIONS
+  --servers <file>  JSON map of server name -> {url} or {command}
+  --key <bearer>    require this client key (default: $MCP_PROXY_KEY)
+  --port <n>        port to listen on (default 8790)
+  --rpm <n>         per-client request limit (default 60)
+
+Endpoints:
+  GET  /health                 status and stats
+  GET  /logs?n=20              recent calls
+  POST /replay/<id>            replay a recorded call
+  POST /?server=<name>         proxy a request to one backend
+
+MIT · https://github.com/rustemmustafingovua-byte
+```
+
 ## Part of a portfolio
 
 | Project | What it does |
