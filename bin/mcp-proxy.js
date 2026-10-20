@@ -11,6 +11,19 @@
 import { readFileSync } from "node:fs"
 import { Proxy } from "../src/index.js"
 
+// --- CLI shell: --help / --version -------------------------------------------
+const HELP = "mcp-proxy — One endpoint, many MCP servers, with keys, limits and logs.\n\nUSAGE\n  mcp-proxy --servers servers.json --key $MCP_PROXY_KEY --port 8790\n\nCOMMANDS / OPTIONS\n  --servers <file>  JSON map of server name -> {url} or {command}\n  --key <bearer>    require this client key (default: $MCP_PROXY_KEY)\n  --port <n>        port to listen on (default 8790)\n  --rpm <n>         per-client request limit (default 60)\n\nEndpoints:\n  GET  /health                 status and stats\n  GET  /logs?n=20              recent calls\n  POST /replay/<id>            replay a recorded call\n  POST /?server=<name>         proxy a request to one backend\n\nMIT · https://github.com/rustemmustafingovua-byte"
+const VERSION = "0.1.0"
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
+  console.log(HELP)
+  process.exit(0)
+}
+if (process.argv.includes("--version") || process.argv.includes("-V")) {
+  console.log(VERSION)
+  process.exit(0)
+}
+
+
 const argv = process.argv.slice(2)
 const arg = (n, d) => {
   const i = argv.indexOf(n)
