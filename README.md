@@ -26,6 +26,14 @@ One endpoint in front of many MCP servers. mcp-proxy adds the things a shared MC
 npm i -g mcp-proxy
 ```
 
+<details>
+<summary>Без npm-логина — из tarball релиза</summary>
+
+```bash
+npm i -g https://github.com/rustemmustafingovua-byte/mcp-proxy/releases/download/v0.1.0/mcp-proxy-0.1.0.tgz
+```
+
+</details>
 ## What it does
 
 | | |
