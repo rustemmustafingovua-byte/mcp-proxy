@@ -50,6 +50,44 @@ npm i -g https://github.com/rustemmustafingovua-byte/mcp-proxy/releases/download
 mcp-proxy --servers servers.json --key $MCP_PROXY_KEY --port 8790
 ```
 
+### Usage examples
+
+`servers.json`:
+
+```json
+{
+  "web": { "url": "https://example.com/mcp" },
+  "local": { "command": ["npx", "-y", "some-mcp-server"] }
+}
+```
+
+Proxy a request:
+
+```bash
+curl -X POST "http://127.0.0.1:8790/?server=web" \
+  -H "authorization: Bearer $MCP_PROXY_KEY" \
+  -H "content-type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+View recent calls:
+
+```bash
+curl "http://127.0.0.1:8790/logs?n=20"
+```
+
+Replay a recorded call:
+
+```bash
+curl -X POST "http://127.0.0.1:8790/replay/<id>"
+```
+
+Check status and stats:
+
+```bash
+curl http://127.0.0.1:8790/health
+```
+
 ## CLI
 
 ```

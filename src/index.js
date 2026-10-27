@@ -94,6 +94,7 @@ export class Proxy {
     this.servers = opts.servers || {}
     this.transport = opts.transport || null
     this.maxBodyBytes = opts.maxBodyBytes || 10 * 1024 * 1024
+    this.timeoutMs = opts.timeoutMs || 0
     for (const [name, s] of Object.entries(this.servers)) {
       if (s.command && (!Array.isArray(s.command) || !s.command.every((x) => typeof x === "string"))) {
         throw new Error(`Server "${name}" command must be an array of strings`)
@@ -134,7 +135,14 @@ export class Proxy {
     }
     const started = Date.now()
     try {
-      const out = await this.transport(request)
+      const out = await new Promise((resolve, reject) => {
+        const timer = this.timeoutMs > 0
+          ? setTimeout(() => reject(new Error(`upstream timeout after ${this.timeoutMs}ms`)), this.timeoutMs)
+          : null
+        Promise.resolve(this.transport(request))
+          .then(val => { if (timer) clearTimeout(timer); resolve(val) })
+          .catch(err => { if (timer) clearTimeout(timer); reject(err) })
+      })
       this.log.add({
         server: request.server || "-",
         method: request.method,
@@ -146,6 +154,7 @@ export class Proxy {
       })
       return out
     } catch (err) {
+      const isTimeout = err?.message?.includes("timeout") || false
       this.log.add({
         server: request.server || "-",
         method: request.method,
@@ -155,7 +164,7 @@ export class Proxy {
         error: String(err?.message ?? err).slice(0, 300),
         body: request.body,
       })
-      return { status: 502, body: { error: "upstream failure" } }
+      return { status: isTimeout ? 504 : 502, body: { error: isTimeout ? "upstream timeout" : "upstream failure" } }
     }
   }
 

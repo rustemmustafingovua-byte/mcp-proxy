@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { Proxy, RateLimiter, safeUrl } from "../src/index.js"
+import { Proxy, RateLimiter, safeUrl, RequestLog } from "../src/index.js"
 
 test("rate limiter blocks after the cap", () => {
   const rl = new RateLimiter(2)
@@ -59,4 +59,77 @@ test("maxBodyBytes rejects oversized payloads in transport", async () => {
   const p = new Proxy({ transport: async () => ({ status: 200, body: { ok: true } }), maxBodyBytes: 10 })
   const out = await p.handle({ server: "web", method: "POST", path: "/mcp", client: "c1", body: "this is longer than ten bytes" })
   assert.equal(out.status, 413)
+})
+
+test("a non-Error throw still becomes a 502", async () => {
+  const p = new Proxy({ transport: async () => { throw "string-error" } })
+  const out = await p.handle({ server: "x" })
+  assert.equal(out.status, 502)
+  assert.equal(p.log.stats().errors, 1)
+})
+
+test("missing server defaults to '-' in logs", async () => {
+  const p = new Proxy({ transport: async () => ({ status: 200, body: { ok: true } }) })
+  await p.handle({})
+  const recent = p.log.recent(1)
+  assert.equal(recent[0].server, "-")
+})
+
+test("authorize passes with empty headers when apiKey is not set", () => {
+  const p = new Proxy({})
+  const res = p.authorize({})
+  assert.equal(res.ok, true)
+})
+
+test("authorize rejects with non-Bearer token", () => {
+  const p = new Proxy({ apiKey: "secret" })
+  const res = p.authorize({ authorization: "nope" })
+  assert.equal(res.ok, false)
+  assert.equal(res.status, 401)
+})
+
+test("timeoutMs wraps transport and returns 504 on slow backend", async () => {
+  const p = new Proxy({
+    transport: async () => new Promise(() => {}), // never resolves
+    timeoutMs: 200,
+  })
+  const out = await p.handle({ server: "x" })
+  assert.equal(out.status, 504)
+  assert.equal(out.body.error, "upstream timeout")
+  assert.equal(p.log.stats().errors, 1)
+})
+
+test("timeoutMs does not fire when transport is fast", async () => {
+  const p = new Proxy({
+    transport: async () => ({ status: 200, body: { ok: true } }),
+    timeoutMs: 5000,
+  })
+  const out = await p.handle({ server: "x" })
+  assert.equal(out.status, 200)
+  assert.equal(p.log.stats().errors, 0)
+})
+
+test("non-string body bypasses maxBodyBytes check", async () => {
+  const p = new Proxy({
+    transport: async () => ({ status: 200, body: { ok: true } }),
+    maxBodyBytes: 10,
+  })
+  const out = await p.handle({ server: "web", method: "POST", path: "/mcp", client: "c1", body: 12345 })
+  assert.equal(out.status, 200)
+})
+
+test("replay with missing id returns 404", async () => {
+  const p = new Proxy({ transport: async () => ({ status: 200, body: { ok: true } }) })
+  const out = await p.replay("does-not-exist")
+  assert.equal(out.status, 404)
+})
+
+test("request log caps entries at limit", () => {
+  const log = new RequestLog(3)
+  log.add({ server: "a" })
+  log.add({ server: "b" })
+  log.add({ server: "c" })
+  log.add({ server: "d" })
+  assert.equal(log.entries.length, 3)
+  assert.equal(log.entries[0].server, "b")
 })
