@@ -40,3 +40,23 @@ test("a failing backend becomes a 502 and is logged as an error", async () => {
 test("logs keep query strings out", () => {
   assert.equal(safeUrl("https://a.b/mcp?token=secret"), "https://a.b/mcp")
 })
+
+test("replay preserves body for non-POST methods", async () => {
+  const p = new Proxy({ transport: async (req) => ({ status: 200, body: { ok: true, method: req.method } }) })
+  await p.handle({ server: "web", method: "GET", path: "/mcp", client: "c1", body: undefined })
+  const recent = p.log.recent(1)
+  assert.equal(recent[0].body, undefined)
+  assert.equal(recent[0].method, "GET")
+})
+
+test("servers config validates command arrays and url strings", () => {
+  assert.throws(() => new Proxy({ servers: { bad: { command: "not-array" } } }), /command must be an array/)
+  assert.throws(() => new Proxy({ servers: { bad: { url: 123 } } }), /url must be a string/)
+  assert.doesNotThrow(() => new Proxy({ servers: { good: { url: "https://ok" } } }))
+})
+
+test("maxBodyBytes rejects oversized payloads in transport", async () => {
+  const p = new Proxy({ transport: async () => ({ status: 200, body: { ok: true } }), maxBodyBytes: 10 })
+  const out = await p.handle({ server: "web", method: "POST", path: "/mcp", client: "c1", body: "this is longer than ten bytes" })
+  assert.equal(out.status, 413)
+})

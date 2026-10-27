@@ -125,6 +125,9 @@ export class Proxy {
       this.log.add({ server: request.server || "-", error: "rate limited", durationMs: 0, client })
       return { status: 429, body: { error: "rate limit exceeded", retryAfter: limit.retryAfter } }
     }
+    if (this.maxBodyBytes && typeof request.body === "string" && Buffer.byteLength(request.body) > this.maxBodyBytes) {
+      return { status: 413, body: { error: "Request body too large" } }
+    }
     if (!this.transport) {
       this.log.add({ server: request.server || "-", error: "no transport configured", durationMs: 0, client })
       return { status: 503, body: { error: "no transport configured" } }
