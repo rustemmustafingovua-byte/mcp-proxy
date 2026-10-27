@@ -93,6 +93,15 @@ export class Proxy {
     this.log = new RequestLog(opts.logLimit)
     this.servers = opts.servers || {}
     this.transport = opts.transport || null
+    this.maxBodyBytes = opts.maxBodyBytes || 10 * 1024 * 1024
+    for (const [name, s] of Object.entries(this.servers)) {
+      if (s.command && (!Array.isArray(s.command) || !s.command.every((x) => typeof x === "string"))) {
+        throw new Error(`Server "${name}" command must be an array of strings`)
+      }
+      if (s.url && typeof s.url !== "string") {
+        throw new Error(`Server "${name}" url must be a string`)
+      }
+    }
   }
 
   /** Check the client key. */
@@ -130,6 +139,7 @@ export class Proxy {
         client,
         durationMs: Date.now() - started,
         status: out.status,
+        body: request.body,
       })
       return out
     } catch (err) {
@@ -140,6 +150,7 @@ export class Proxy {
         client,
         durationMs: Date.now() - started,
         error: String(err?.message ?? err).slice(0, 300),
+        body: request.body,
       })
       return { status: 502, body: { error: "upstream failure" } }
     }

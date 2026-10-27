@@ -37,18 +37,26 @@ if (!cfgPath) {
 }
 const servers = JSON.parse(readFileSync(cfgPath, "utf8"))
 const port = Number(arg("--port", 8790))
+const MAX_BODY = Number(arg("--max-body", 10 * 1024 * 1024))
 
 const proxy = new Proxy({
   apiKey: arg("--key", process.env.MCP_PROXY_KEY || ""),
   rpm: Number(arg("--rpm", 60)),
   servers,
+  maxBodyBytes: MAX_BODY,
 })
 
 const http = await import("node:http")
 http
   .createServer(async (req, res) => {
     const chunks = []
-    for await (const c of req) chunks.push(c)
+    for await (const c of req) {
+      if (chunks.reduce((s, b) => s + b.length, 0) >= proxy.maxBodyBytes) {
+        res.writeHead(413, { "Content-Type": "application/json" })
+        return res.end(JSON.stringify({ error: "Request body too large" }))
+      }
+      chunks.push(c)
+    }
     const body = chunks.length ? Buffer.concat(chunks).toString() : undefined
     const url = new URL(req.url, "http://localhost")
     const server = url.searchParams.get("server") || Object.keys(servers)[0]
