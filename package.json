@@ -39,5 +39,10 @@
   "bugs": {
     "url": "https://github.com/rustemmustafingovua-byte/mcp-proxy/issues"
   },
-  "homepage": "https://github.com/rustemmustafingovua-byte/mcp-proxy"
+  "homepage": "https://github.com/rustemmustafingovua-byte/mcp-proxy",
+  "funding": {
+    "custom": [
+      "https://github.com/sponsors/rustemmustafingovua-byte"
+    ]
+  }
 }

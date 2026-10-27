@@ -20,6 +20,14 @@
 
 One endpoint in front of many MCP servers. mcp-proxy adds the things a shared MCP endpoint needs and a single server does not: a client key, per-client rate limits, an append-only request log, replay of past calls, and routing by server name.
 
+## Quick Start
+
+```bash
+git clone https://github.com/rustemmustafingovua-byte/mcp-proxy.git
+cd mcp-proxy && npm install
+npm test
+```
+
 ## Install
 
 ```bash
@@ -37,7 +45,10 @@ npm i -g https://github.com/rustemmustafingovua-byte/mcp-proxy/releases/download
 ## What it does
 
 | | |
-|---|---|
+|
+
+⭐ **Star us on GitHub** — it helps others find the project.
+---|---|
 | **A single client key** | one Bearer token for every backend |
 | **Per-client rate limits** | sliding window, Retry-After on the 429 |
 | **Append-only request log** | who called what, how long it took, what failed |
@@ -135,6 +146,12 @@ Every tool here is MIT and free. If it saved you time, you can support the work:
 - **GitHub Sponsors:** https://github.com/sponsors/rustemmustafingovua-byte
 
 Paid tiers of the hosted services are billed per call in USDC (x402) — no accounts, no keys.
+
+## Monetization
+
+This project earns through x402 micropayments, API key tiers, and hosted subscriptions. See package.json `funding` field and the live deployment for pay-per-call pricing.
+
+---
 
 ## License
 
