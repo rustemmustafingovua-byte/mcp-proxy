@@ -14,23 +14,17 @@
     "node": ">=20"
   },
   "keywords": [
-    "mcp",
-    "proxy",
-    "rate-limiting",
-    "observability",
-    "openai-compatible",
-    "agents",
-    "security"
+    "mcp", "proxy", "rate-limiting", "observability", "openai-compatible", "agents", "security"
   ],
-  "files": [
-    "bin",
-    "src",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["bin", "src", "README.md", "LICENSE"],
   "scripts": {
     "test": "node --test test/*.test.js",
+    "build": "node -e "console.log('No build step required for mcp-proxy')"",
     "lint": "node --check src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "viem": "^2.57.7"
   },
   "repository": {
     "type": "git",
