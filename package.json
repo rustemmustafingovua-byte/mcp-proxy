@@ -19,7 +19,7 @@
   "files": ["bin", "src", "README.md", "LICENSE"],
   "scripts": {
     "test": "node --test test/*.test.js",
-    "build": "node -e "console.log('No build step required for mcp-proxy')"",
+    "build": "echo 'No build step required for mcp-proxy'",
     "lint": "node --check src/index.js"
   },
   "dependencies": {
