@@ -9,6 +9,12 @@
  *   - routing by server name
  */
 import { randomUUID } from "node:crypto"
+import { appendFileSync, statSync, renameSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { join, dirname } from "node:path"
+
+export const DEFAULT_LOG_PATH = join(homedir(), ".mcp-proxy", "log.jsonl")
+export const DEFAULT_MAX_LOG_BYTES = 10 * 1024 * 1024 // 10MB
 
 export class RateLimiter {
   constructor(rpm) {
@@ -30,16 +36,63 @@ export class RateLimiter {
 }
 
 export class RequestLog {
-  constructor(limit = 500) {
+  constructor(limit = 500, opts = {}) {
     this.limit = limit
     this.entries = []
+    this.logFile = opts.logFile !== undefined ? opts.logFile : DEFAULT_LOG_PATH
+    this.maxBytes = opts.maxBytes || opts.maxSizeBytes || DEFAULT_MAX_LOG_BYTES
+    this.maxBackups = opts.maxBackups || 3
   }
 
   add(entry) {
     const e = { id: randomUUID(), at: new Date().toISOString(), ...entry }
     this.entries.push(e)
     if (this.entries.length > this.limit) this.entries.splice(0, this.entries.length - this.limit)
+    if (this.logFile) {
+      this.appendAndRotate(e)
+    }
     return e
+  }
+
+  appendAndRotate(entry) {
+    try {
+      mkdirSync(dirname(this.logFile), { recursive: true })
+      if (existsSync(this.logFile) && statSync(this.logFile).size >= this.maxBytes) {
+        this.rotate()
+      }
+      appendFileSync(this.logFile, JSON.stringify(entry) + "\n", "utf8")
+    } catch {
+      // Graceful fallback if filesystem is read-only
+    }
+  }
+
+  rotate() {
+    try {
+      if (!existsSync(this.logFile)) return
+      for (let i = this.maxBackups - 1; i >= 1; i--) {
+        const src = `${this.logFile}.${i}`
+        const dest = `${this.logFile}.${i + 1}`
+        if (existsSync(src)) renameSync(src, dest)
+      }
+      renameSync(this.logFile, `${this.logFile}.1`)
+    } catch {
+      // Graceful fallback
+    }
+  }
+
+  static readLogs(filePath = DEFAULT_LOG_PATH) {
+    if (!existsSync(filePath)) return []
+    try {
+      const content = readFileSync(filePath, "utf8").trim()
+      if (!content) return []
+      return content.split("\n").filter(Boolean).map((line) => JSON.parse(line))
+    } catch {
+      return []
+    }
+  }
+
+  readLogs(filePath = this.logFile) {
+    return RequestLog.readLogs(filePath)
   }
 
   recent(n = 20, server) {
@@ -90,7 +143,10 @@ export class Proxy {
   constructor(opts = {}) {
     this.apiKey = opts.apiKey || ""
     this.limiter = new RateLimiter(opts.rpm)
-    this.log = new RequestLog(opts.logLimit)
+    this.log = new RequestLog(opts.logLimit, {
+      logFile: opts.logFile,
+      maxBytes: opts.maxLogBytes || opts.maxBytes,
+    })
     this.servers = opts.servers || {}
     this.transport = opts.transport || null
     this.maxBodyBytes = opts.maxBodyBytes || 10 * 1024 * 1024

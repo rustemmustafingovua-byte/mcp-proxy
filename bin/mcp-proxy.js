@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs"
 import { Proxy } from "../src/index.js"
 
 // --- CLI shell: --help / --version -------------------------------------------
-const HELP = "mcp-proxy — One endpoint, many MCP servers, with keys, limits and logs.\n\nUSAGE\n  mcp-proxy --servers servers.json --key $MCP_PROXY_KEY --port 8790\n\nCOMMANDS / OPTIONS\n  --servers <file>  JSON map of server name -> {url} or {command}\n  --key <bearer>    require this client key (default: $MCP_PROXY_KEY)\n  --port <n>        port to listen on (default 8790)\n  --rpm <n>         per-client request limit (default 60)\n\nEndpoints:\n  GET  /health                 status and stats\n  GET  /logs?n=20              recent calls\n  POST /replay/<id>            replay a recorded call\n  POST /?server=<name>         proxy a request to one backend\n\nMIT · https://github.com/rustemmustafingovua-byte"
+const HELP = "mcp-proxy — One endpoint, many MCP servers, with keys, limits and logs.\n\nUSAGE\n  mcp-proxy --servers servers.json --key $MCP_PROXY_KEY --port 8790\n\nCOMMANDS / OPTIONS\n  --servers <file>      JSON map of server name -> {url} or {command}\n  --key <bearer>        require this client key (default: $MCP_PROXY_KEY)\n  --port <n>            port to listen on (default 8790)\n  --rpm <n>             per-client request limit (default 60)\n  --log-file <path>     JSONL log file (default: ~/.mcp-proxy/log.jsonl)\n  --max-log-size <n>    size in bytes before log file rotates (default: 10MB)\n\nEndpoints:\n  GET  /health                 status and stats\n  GET  /logs?n=20              recent calls\n  POST /replay/<id>            replay a recorded call\n  POST /?server=<name>         proxy a request to one backend\n\nMIT · https://github.com/rustemmustafingovua-byte"
 const VERSION = "0.1.0"
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   console.log(HELP)
@@ -38,12 +38,16 @@ if (!cfgPath) {
 const servers = JSON.parse(readFileSync(cfgPath, "utf8"))
 const port = Number(arg("--port", 8790))
 const MAX_BODY = Number(arg("--max-body", 10 * 1024 * 1024))
+const logFile = arg("--log-file")
+const maxLogBytes = arg("--max-log-size") ? Number(arg("--max-log-size")) : undefined
 
 const proxy = new Proxy({
   apiKey: arg("--key", process.env.MCP_PROXY_KEY || ""),
   rpm: Number(arg("--rpm", 60)),
   servers,
   maxBodyBytes: MAX_BODY,
+  logFile,
+  maxLogBytes,
 })
 
 const http = await import("node:http")
